@@ -1,26 +1,21 @@
-"""
-URL configuration for backend project.
-
-The `urlpatterns` list routes URLs to views. For more information please see:
-    https://docs.djangoproject.com/en/4.2/topics/http/urls/
-Examples:
-Function views
-    1. Add an import:  from my_app import views
-    2. Add a URL to urlpatterns:  path('', views.home, name='home')
-Class-based views
-    1. Add an import:  from other_app.views import Home
-    2. Add a URL to urlpatterns:  path('', Home.as_view(), name='home')
-Including another URLconf
-    1. Import the include() function: from django.urls import include, path
-    2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
-"""
 from django.contrib import admin
 from django.urls import path
 from omr import views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/exams/', views.exam_list),
-    path('api/exams/create/', views.create_exam),
+
+    # Exam
+    path('api/exams/', views.exam_list),         # GET, POST 같이 처리
+    path('api/exams/<int:exam_id>/', views.exam_detail),
+
+    # WrongNote
+    path('api/wrong-notes/', views.create_wrong_note),
     path('api/wrong-notes/<int:exam_id>/', views.wrong_notes),
+    path('api/wrong-notes/update/<int:note_id>/', views.update_wrong_note),
+    path('api/tags/', views.tag_list),
+    path('api/wrong-note-tags/', views.update_wrongnote_tags),
+    path('api/exams/wrong/', views.exams_with_wrong_notes),
+    path('api/tags/<int:tag_id>/', views.delete_tag),
+    path('api/wrong-notes/delete/<int:exam_id>/', views.delete_wrong_notes_by_exam),
 ]

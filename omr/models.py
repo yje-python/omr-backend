@@ -4,20 +4,31 @@ from django.db import models
 
 
 class Exam(models.Model):
-    name = models.CharField(max_length=100)
+    exam_name = models.CharField(max_length=100)
+    template_id = models.IntegerField(null=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
+class Subject(models.Model):
+    exam = models.ForeignKey(Exam, on_delete=models.CASCADE, related_name='subjects')
+
+    subject_name = models.CharField(max_length=100)
+    question_count = models.IntegerField()
+    time_limit = models.IntegerField()
 
 
 class Answer(models.Model):
-    exam = models.ForeignKey(Exam, on_delete=models.CASCADE, related_name='answers')
+    subject = models.ForeignKey(Subject, on_delete=models.CASCADE, related_name='answers')
+
     question_number = models.IntegerField()
     user_answer = models.IntegerField(null=True)
     correct_answer = models.IntegerField()
+
     is_correct = models.BooleanField()
 
 
 class WrongNote(models.Model):
-    exam = models.ForeignKey(Exam, on_delete=models.CASCADE, related_name='wrong_notes')
+    subject = models.ForeignKey(Subject, on_delete=models.CASCADE, related_name='wrong_notes')
+
     question_number = models.IntegerField()
 
     user_answer = models.IntegerField()
