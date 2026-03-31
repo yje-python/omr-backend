@@ -6,61 +6,74 @@ from .models import Exam, Subject, Answer, WrongNote, Tag, WrongNoteTag
 from .serializers import ExamSerializer, WrongNoteSerializer
 from django.shortcuts import get_object_or_404
 from django.db.models import Count
+import time
 
+import time
 
-@api_view(['GET', 'POST'])
+@api_view(['POST'])
 def exam_list(request):
-    if request.method == 'GET':
-        exams = Exam.objects.all().order_by('-created_at')
-        return Response(ExamSerializer(exams, many=True).data)
+    data = request.data
 
-    elif request.method == 'POST':
-        data = request.data
+    exam = Exam.objects.create(
+        exam_name=data.get('exam_name'),
+        template_id=data.get('template_id')
+    )
 
-        exam = Exam.objects.create(
-            exam_name=data.get('exam_name'),
-            template_id=data.get('template_id')
+    subjects = data.get('subjects', [])
+
+    for subject_data in subjects:
+        subject = Subject.objects.create(
+            exam=exam,
+            subject_name=subject_data.get('subject_name'),
+            question_count=subject_data.get('question_count'),
+            time_limit=subject_data.get('time_limit'),
         )
 
-        subjects = data.get('subjects', [])
-        for subject_data in subjects:
-            subject = Subject.objects.create(
-                exam=exam,
-                subject_name=subject_data.get('subject_name'),
-                question_count=subject_data.get('question_count'),
-                time_limit=subject_data.get('time_limit'),
-            )
+        answers = subject_data.get('answers', [])
+        correct_answers = subject_data.get('correct_answers', [])
 
-            answers = subject_data.get('answers', [])
-            correct_answers = subject_data.get('correct_answers', [])
+        answer_objs = []
+        wrongnote_objs = []
 
-            for i in range(len(answers)):
-                user = answers[i]
-                correct = correct_answers[i] if i < len(correct_answers) else None
-                is_correct = (user == correct) if correct is not None else False
+        for i in range(len(answers)):
+            user = answers[i]
+            correct = correct_answers[i] if i < len(correct_answers) else None
+            is_correct = (user == correct) if correct is not None else False
 
-                answer = Answer.objects.create(
+            answer_objs.append(
+                Answer(
                     subject=subject,
                     question_number=i + 1,
                     user_answer=user,
                     correct_answer=correct,
                     is_correct=is_correct
                 )
+            )
 
-                # 🔥 여기 추가 (핵심)
-                if user is not None and not is_correct:
-                    print("🔥 WrongNote 생성:", i+1)
-                    WrongNote.objects.update_or_create(
+            if user is not None and not is_correct:
+                wrongnote_objs.append(
+                    WrongNote(
                         subject=subject,
                         question_number=i + 1,
-                        defaults={
-                            'user_answer': user,
-                            'correct_answer': correct,
-                            'memo': ''
-                        }
+                        user_answer=user,
+                        correct_answer=correct,
+                        memo=''
                     )
+                )
 
-        return Response(ExamSerializer(exam).data)
+        Answer.objects.bulk_create(answer_objs)
+
+        if wrongnote_objs:
+            WrongNote.objects.bulk_create(wrongnote_objs)
+
+    # 🔥 for문 끝난 뒤에 실행해야 함
+    start = time.time()
+
+    res = ExamSerializer(exam).data
+
+    print("⏱ serialize time:", time.time() - start)
+
+    return Response(res)
 
 
 @api_view(['GET', 'DELETE'])
